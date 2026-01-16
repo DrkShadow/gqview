@@ -166,7 +166,7 @@ gqview_SOURCES = \
 	view_file_icon.c	\
 	view_file_icon.h
 
-gqview_LDADD = $(GTK_LIBS) $(INTLLIBS) $(LCMS_LIBS)
+gqview_LDADD = $(GTK_LIBS) $(INTLLIBS) $(LCMS_LIBS) $(LIBM)
 
 EXTRA_DIST = \
 	$(extra_SLIK)

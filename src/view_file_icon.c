@@ -587,7 +587,7 @@ static void vficon_dnd_get(GtkWidget *widget, GdkDragContext *context,
 	path_list_free(list);
 
 	if (debug)
-		printf(uri_text);
+		printf("%s", uri_text);
 
 	gtk_selection_data_set(selection_data, selection_data->target,
 			       8, (guchar *)uri_text, total);

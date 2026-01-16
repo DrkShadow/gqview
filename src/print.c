@@ -1163,7 +1163,7 @@ static gint print_job_ps_page_done(PrintWindow *pw) {
 	return ret;
 }
 
-static void print_job_ps_page_image_pixel(FILE *f, guchar *pix) {
+static void print_job_ps_page_image_pixel(FILE *restrict const f, const guchar *restrict const pix) {
 	static gchar hex_digits[] = "0123456789abcdef";
 	gchar text[8];
 	gint i;
@@ -1293,7 +1293,7 @@ static const gchar *ps_text_to_hex_array(FILE *f, const gchar *text, gdouble x, 
 		text[1] = hex_digits[*p & 0xf];
 		text[2] = '\0';
 
-		fprintf(f, text);
+		fprintf(f, "%s", text);
 
 		p++;
 	}

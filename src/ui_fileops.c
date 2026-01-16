@@ -43,7 +43,7 @@ void print_term(const gchar *text_utf8) {
 	gchar *text_l;
 
 	text_l = g_locale_from_utf8(text_utf8, -1, NULL, NULL, NULL);
-	printf((text_l) ? text_l : text_utf8);
+	printf("%s", (text_l) ? text_l : text_utf8);
 	g_free(text_l);
 }
 

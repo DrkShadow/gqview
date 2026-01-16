@@ -1030,10 +1030,8 @@ static void exit_gqview_final(void) {
 
 	if (layout_valid(&lw)) {
 		main_window_maximized =  window_maximized(lw->window);
-		if (!main_window_maximized) {
-			layout_geometry_get(NULL, &main_window_x, &main_window_y,
-					    &main_window_w, &main_window_h);
-		}
+		layout_geometry_get(NULL, &main_window_x, &main_window_y,
+					&main_window_w, &main_window_h);
 	}
 
 	layout_geometry_get_dividers(NULL, &window_hdivider_pos, &window_vdivider_pos);
