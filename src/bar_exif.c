@@ -10,6 +10,8 @@
  */
 
 
+#define bar_exif_IMPL
+
 #include "gqview.h"
 #include "bar_exif.h"
 

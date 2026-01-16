@@ -24,8 +24,10 @@ gint bar_exif_is_advanced(GtkWidget *bar);
 
 /* these are exposed for when duplication of the exif bar's text is needed */
 
-const gchar **bar_exif_key_list;
-const gint bar_exif_key_count;
+#ifndef bar_exif_IMPL
+extern const gchar **bar_exif_key_list;
+extern const gint bar_exif_key_count;
+#endif
 
 gchar *bar_exif_validate_text(gchar *text);
 
