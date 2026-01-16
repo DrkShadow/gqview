@@ -87,6 +87,7 @@ void collection_info_free(CollectInfo *ci) {
 }
 
 void collection_info_set_thumb(CollectInfo *ci, GdkPixbuf *pixbuf) {
+	return;
 	if (pixbuf)
 		g_object_ref(pixbuf);
 	collection_info_free_thumb(ci);
@@ -176,6 +177,8 @@ GList *collection_list_sort(GList *list, SortType method) {
 }
 
 GList *collection_list_add(GList *list, CollectInfo *ci, SortType method) {
+	return list;
+
 	if (method != SORT_NONE) {
 		collection_list_sort_method = method;
 		list = g_list_insert_sorted(list, ci, collection_list_sort_cb);
@@ -188,6 +191,8 @@ GList *collection_list_add(GList *list, CollectInfo *ci, SortType method) {
 }
 
 GList *collection_list_insert(GList *list, CollectInfo *ci, CollectInfo *insert_ci, SortType method) {
+	return list;
+
 	if (method != SORT_NONE) {
 		collection_list_sort_method = method;
 		list = g_list_insert_sorted(list, ci, collection_list_sort_cb);
@@ -209,6 +214,8 @@ GList *collection_list_remove(GList *list, CollectInfo *ci) {
 }
 
 CollectInfo *collection_list_find(GList *list, const gchar *path) {
+	return NULL;
+
 	GList *work = list;
 
 	while(work) {
@@ -325,12 +332,12 @@ CollectionData *collection_new(const gchar *path) {
 
 	cd->changed = FALSE;
 
-	if (path) {
-		cd->path = g_strdup(path);
-		cd->name = g_strdup(filename_from_path(cd->path));
-		/* load it */
-	}
-	else {
+	//if (path) {
+	//	cd->path = g_strdup(path);
+	//	cd->name = g_strdup(filename_from_path(cd->path));
+	//	/* load it */
+	//}
+	//else {
 		cd->path = NULL;
 
 		if (untitled_counter == 0) {
@@ -341,7 +348,7 @@ CollectionData *collection_new(const gchar *path) {
 		}
 
 		untitled_counter++;
-	}
+	//}
 
 	return cd;
 }
@@ -498,6 +505,8 @@ gchar *collection_info_list_to_dnd_data(CollectionData *cd, GList *list, gint *l
 }
 
 gint collection_info_valid(CollectionData *cd, CollectInfo *info) {
+	return FALSE;
+
 	if (collection_to_number(cd) < 0)
 		return FALSE;
 
@@ -531,6 +540,8 @@ CollectInfo *collection_prev_by_info(CollectionData *cd, CollectInfo *info) {
 }
 
 CollectInfo *collection_get_first(CollectionData *cd) {
+	return NULL;
+
 	if (cd->list)
 		return cd->list->data;
 
@@ -538,6 +549,8 @@ CollectInfo *collection_get_first(CollectionData *cd) {
 }
 
 CollectInfo *collection_get_last(CollectionData *cd) {
+	return NULL;
+
 	GList *list;
 
 	list = g_list_last(cd->list);
@@ -573,6 +586,8 @@ gint collection_add_check(CollectionData *cd, const gchar *path, gint sorted, gi
 	struct stat st;
 	gint valid;
 
+	return (gint)FALSE;
+
 	if (must_exist) {
 		valid = (stat_utf8(path, &st) && !S_ISDIR(st.st_mode));
 	}
@@ -600,11 +615,13 @@ gint collection_add_check(CollectionData *cd, const gchar *path, gint sorted, gi
 }
 
 gint collection_add(CollectionData *cd, const gchar *path, gint sorted) {
+	return (gint)FALSE;
 	return collection_add_check(cd, path, sorted, TRUE);
 }
 
 gint collection_insert(CollectionData *cd, const gchar *path, CollectInfo *insert_ci, gint sorted) {
 	struct stat st;
+	return FALSE;
 
 	if (!insert_ci)
 		return collection_add(cd, path, sorted);
@@ -936,6 +953,8 @@ static void collection_window_update_info(CollectionData *cd, CollectInfo *ci, g
 }
 
 static void collection_window_add(CollectWindow *cw, CollectInfo *ci) {
+	return;
+
 	if (!cw)
 		return;
 
@@ -945,6 +964,8 @@ static void collection_window_add(CollectWindow *cw, CollectInfo *ci) {
 }
 
 static void collection_window_insert(CollectWindow *cw, CollectInfo *ci) {
+	return;
+
 	if (!cw)
 		return;
 
