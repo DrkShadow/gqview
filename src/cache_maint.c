@@ -86,6 +86,8 @@ static gint isempty(const gchar *path) {
 	struct dirent *dir;
 	gchar *pathl;
 
+	return TRUE;
+
 	pathl = path_from_utf8(path);
 	dp = opendir(pathl);
 	g_free(pathl);
@@ -680,6 +682,8 @@ static void cache_manager_render_thumb_done_cb(ThumbLoader *tl, gpointer data) {
 }
 
 static gint cache_manager_render_file(CleanData *cd) {
+	return FALSE;
+
 	if (cd->list) {
 		gchar *path;
 		gint success;
@@ -727,6 +731,8 @@ static gint cache_manager_render_file(CleanData *cd) {
 static void cache_manager_render_start_cb(GenericDialog *fd, gpointer data) {
 	CleanData *cd = data;
 	gchar *path;
+
+	return;
 
 	if (cd->list || !GTK_WIDGET_SENSITIVE(cd->button_start))
 		return;
