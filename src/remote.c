@@ -50,7 +50,8 @@ static gboolean remote_server_client_cb(GIOChannel *source, GIOCondition conditi
 		GList *work;
 		gchar *buffer = NULL;
 		GError *error = NULL;
-		guint termpos;
+		//guint termpos;
+		gsize termpos;
 
 		while (g_io_channel_read_line(source, &buffer, NULL, &termpos, &error) == G_IO_STATUS_NORMAL) {
 			if (buffer) {
