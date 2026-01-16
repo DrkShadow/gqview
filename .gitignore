@@ -1,0 +1,16 @@
+*.o
+config.h
+config.log
+config.status
+Makefile
+src/.deps
+src/gqview
+
+# Generated?
+src/icons/icons_inline.h
+src/ui_icons.h
+stamp-h1
+po/Makefile.in
+po/POTFILES
+
+
