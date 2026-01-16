@@ -956,6 +956,8 @@ static void parse_command_line(int argc, char *argv[], gchar **path, gchar **fil
 #define RC_HISTORY_NAME "history"
 
 static void keys_load(void) {
+	return;
+
 	gchar *path;
 
 	path = g_strconcat(homedir(), "/", GQVIEW_RC_DIR, "/", RC_HISTORY_NAME, NULL);
@@ -964,6 +966,7 @@ static void keys_load(void) {
 }
 
 static void keys_save(void) {
+	return;
 	gchar *path;
 
 	path = g_strconcat(homedir(), "/", GQVIEW_RC_DIR, "/", RC_HISTORY_NAME, NULL);

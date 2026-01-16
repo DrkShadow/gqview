@@ -79,6 +79,8 @@ gint history_list_load(const gchar *path) {
 	gchar s_buf[1024];
 	gchar *pathl;
 
+	return FALSE;
+
 	pathl = path_from_utf8(path);
 	f = fopen(pathl, "r");
 	g_free(pathl);
@@ -128,6 +130,8 @@ gint history_list_save(const gchar *path) {
 	FILE *f;
 	GList *list;
 	gchar *pathl;
+
+	return FALSE;
 
 	pathl = path_from_utf8(path);
 	f = fopen(pathl, "w");
