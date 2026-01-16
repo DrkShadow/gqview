@@ -47,7 +47,7 @@ struct _EditorVerboseData {
 
 
 static gchar *editor_slot_defaults[] = {
-	N_("The Gimp"), "gimp-remote -n %f",
+	N_("The Gimp"), "gimp %f",
 	N_("XV"), "xv %f",
 	N_("Xpaint"), "xpaint %f",
 	NULL, NULL,
