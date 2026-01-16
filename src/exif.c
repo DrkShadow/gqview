@@ -35,24 +35,25 @@
  *        UserComment (convert this to UTF-8?)
  *
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
+
 
 #include <stdio.h>
 #include <string.h>
@@ -64,10 +65,14 @@
 #include <math.h>
 
 #include <glib.h>
+#include <jxl/decode.h>
 
+#include "gqview.h"
 #include "intl.h"
 
 #include "exif.h"
+
+gint exif_jxl_parse(ExifData *const restrict exif, const guint size, uint8_t data[const static size], ExifMarker ExifKnownMarkersList[restrict const], const gint parse_color_profile);
 
 #include "format_raw.h"
 #include "ui_fileops.h"
@@ -80,7 +85,7 @@
  */
 
 ExifFormatAttrib ExifFormatList[] = {
-   	{ EXIF_FORMAT_UNKNOWN,		1, "unknown",	"unknown" },
+	{ EXIF_FORMAT_UNKNOWN,		1, "unknown",	"unknown" },
 	{ EXIF_FORMAT_BYTE_UNSIGNED,	1, "ubyte",	"unsigned byte" },
 	{ EXIF_FORMAT_STRING,		1, "string",	"string" },
 	{ EXIF_FORMAT_SHORT_UNSIGNED,	2, "ushort",	"unsigned short" },
@@ -121,7 +126,7 @@ static ExifTextList ExifOrientationList[] = {
 };
 
 static ExifTextList ExifUnitList[] = {
-   	{ EXIF_UNIT_UNKNOWN,	N_("unknown") },
+	{ EXIF_UNIT_UNKNOWN,	N_("unknown") },
 	{ EXIF_UNIT_NOUNIT,	"" },
 	{ EXIF_UNIT_INCH,	N_("inch") },
 	{ EXIF_UNIT_CENTIMETER,	N_("centimeter") },
@@ -160,7 +165,7 @@ static ExifTextList ExifExposureProgramList[] = {
 };
 
 static ExifTextList ExifLightSourceList[] = {
-   	{ 0,	N_("unknown") },
+	{ 0,	N_("unknown") },
 	{ 1,	N_("daylight") },
 	{ 2,	N_("fluorescent") },
 	{ 3,	N_("tungsten (incandescent)") },
@@ -255,27 +260,54 @@ static ExifTextList ExifGainControlList[] = {
 	EXIF_TEXT_LIST_END
 };
 
-static ExifTextList ExifContrastList[] = { { 0,	"normal" },
-	{ 1,	"soft" }, { 2,	"hard" },
+static ExifTextList ExifContrastList[] = {
+	{ 0,	"normal" },
+	{ 1,	"soft" },
+	{ 2,	"hard" },
 	EXIF_TEXT_LIST_END
 };
 
-static ExifTextList ExifSaturationList[] = { { 0,	"normal" },
-	{ 1,	"low" }, { 2,	"high" },
+static ExifTextList ExifSaturationList[] = {
+	{ 0,	"normal" },
+	{ 1,	"low" },
+	{ 2,	"high" },
+	EXIF_TEXT_LIST_END
+};
+static ExifTextList ExifCompositeImageList[] = {
+	{ 0, "Unknown" },
+	{ 1, "Not a Composite Image" },
+	{ 2, "General Composite Image" },
+	{ 3, "Composite Image Captured While Shooting" },
+	EXIF_TEXT_LIST_END
+};
+static ExifTextList ExifSensitivityTypeList[] = {
+	{ 0, "Unknown" },
+	{ 1, "Standard Output Sensitivity" },
+	{ 2, "Recommended Exposure Index" },
+	{ 3, "ISO Speed" },
+	{ 4, "Standard Output Sensitivity and Recommended Exposure Index" },
+	{ 5, "Standard Output Sensitivity and ISO Speed" },
+	{ 6, "Recommended Exposure Index and ISO Speed" },
+	{ 7, "Standard Output Sensitivity, Recommended Exposure Index and ISO Speed" },
 	EXIF_TEXT_LIST_END
 };
 
-static ExifTextList ExifSharpnessList[] = { { 0,	"normal" },
-	{ 1,	"soft" }, { 2,	"hard" },
+static ExifTextList ExifSharpnessList[] = {
+	{ 0,	"normal" },
+	{ 1,	"soft" },
+	{ 2,	"hard" },
 	EXIF_TEXT_LIST_END
 };
 
-static ExifTextList ExifSubjectRangeList[] = { { 0,	"unknown" },
-	{ 1,	"macro" }, { 2,	"close" },
+static ExifTextList ExifSubjectRangeList[] = {
+	{ 0,	"unknown" },
+	{ 1,	"macro" },
+	{ 2,	"close" },
 	{ 3,	"distant" },
 	EXIF_TEXT_LIST_END
 };
 
+// https://exiftool.org/TagNames/EXIF.html
 ExifMarker ExifKnownMarkersList[] = {
 	{ 0x010e, EXIF_FORMAT_STRING,	-1,		"ImageDescription",	N_("Image description"), NULL },
 	{ 0x010f, EXIF_FORMAT_STRING,	-1,		"Make",			"Camera make", NULL },
@@ -284,13 +316,13 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0x011a, EXIF_FORMAT_RATIONAL_UNSIGNED, 1,	"XResolution",		"X resolution", NULL },
 	{ 0x011b, EXIF_FORMAT_RATIONAL_UNSIGNED, 1,	"YResolution",		"Y Resolution", NULL },
 	{ 0x0128, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"ResolutionUnit",	"Resolution units", ExifUnitList },
-	{ 0x0131, EXIF_FORMAT_STRING, -1, 		"Software",		"Firmware", NULL },
+	{ 0x0131, EXIF_FORMAT_STRING, -1,		"Software",		"Firmware", NULL },
 	{ 0x0132, EXIF_FORMAT_STRING, 20,		"DateTime",		N_("Date"), NULL },
 	{ 0x013e, EXIF_FORMAT_RATIONAL_UNSIGNED, 2,	"WhitePoint",		"White point", NULL },
 	{ 0x013f, EXIF_FORMAT_RATIONAL_UNSIGNED, 6,	"PrimaryChromaticities","Primary chromaticities", NULL },
 	{ 0x0211, EXIF_FORMAT_RATIONAL_UNSIGNED, 3,	"YCbCrCoefficients",	"YCbCy coefficients", NULL },
 	{ 0x0213, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"YCbCrPositioning",	"YCbCr positioning", ExifYCbCrPosList },
-	{ 0x0214, EXIF_FORMAT_RATIONAL_UNSIGNED, 6, 	"ReferenceBlackWhite",	"Black white reference", NULL },
+	{ 0x0214, EXIF_FORMAT_RATIONAL_UNSIGNED, 6,	"ReferenceBlackWhite",	"Black white reference", NULL },
 	{ 0x8298, EXIF_FORMAT_STRING, -1,		"Copyright",		N_("Copyright"), NULL },
 	{ 0x8769, EXIF_FORMAT_LONG_UNSIGNED, 1,		"ExifOffset",		"SubIFD Exif offset", NULL },
 	/* subIFD follows */
@@ -300,9 +332,26 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0x8824, EXIF_FORMAT_STRING, -1,		"SpectralSensitivity",	"Spectral Sensitivity", NULL },
 	{ 0x8827, EXIF_FORMAT_SHORT_UNSIGNED, -1,	"ISOSpeedRatings",	N_("ISO sensitivity"), NULL },
 	{ 0x8828, EXIF_FORMAT_UNDEFINED, -1,		"OECF",			"Optoelectric conversion factor", NULL },
+	//{ 0x8829 	Interlace 	no 	- 	 
+	{ 0x882a, EXIF_FORMAT_SHORT, -1, "TimeZoneOffset", "Time zone offset of DateTimeOriginal from GMT; if (2), then time zone offset from ModifyDate.", NULL, },
+	{ 0x882b, EXIF_FORMAT_SHORT_UNSIGNED,	1, "SelfTimerMode", "Unknown", NULL },
+	{ 0x8830, EXIF_FORMAT_SHORT_UNSIGNED,	1, "SensitivityType", "Sensitivity Type", ExifSensitivityTypeList },
+	{ 0x8831, EXIF_FORMAT_LONG_UNSIGNED,	1, "StandardOutputSensitivity", "Standard Output Sensitivity", NULL },
+	{ 0x8832, EXIF_FORMAT_LONG_UNSIGNED,	1, "RecommendedExposureIndex", "Recommended Exposure Index", NULL },
+	{ 0x8833, EXIF_FORMAT_LONG_UNSIGNED,	1, "ISOSpeed", "ISO Speed", NULL },
+	{ 0x8834, EXIF_FORMAT_LONG_UNSIGNED,	1, "ISOSpeedLatitudeyyy", "ISO Speed Latitude YYY", NULL },
+	{ 0x8835, EXIF_FORMAT_LONG_UNSIGNED,	1, "ISOSpeedLatitudezzz", "ISO Speed Latitude ZZZ", NULL },
+	{ 0x885c, EXIF_FORMAT_UNDEFINED, -1, "FaxRecvParams", NULL, NULL },
+	{ 0x885d, EXIF_FORMAT_UNDEFINED, -1, "FaxSubAddress", NULL, NULL },
+	{ 0x885e, EXIF_FORMAT_UNDEFINED, -1, "FaxRecvTime", NULL, NULL },
+	{ 0x8871, EXIF_FORMAT_UNDEFINED, -1, "FedexEDR", NULL, NULL },
+	//{ 0x888a 	LeafSubIFD
 	{ 0x9000, EXIF_FORMAT_UNDEFINED, 4,		"ExifVersion",		"Exif version", NULL },
 	{ 0x9003, EXIF_FORMAT_STRING, 20,		"DateTimeOriginal",	N_("Date original"), NULL },
 	{ 0x9004, EXIF_FORMAT_STRING, 20,		"DateTimeDigitized",	N_("Date digitized"), NULL },
+	{ 0x9010, EXIF_FORMAT_STRING, -1,  "OffsetTime",	"Time zone for ModifyDate", NULL },
+	{ 0x9011, EXIF_FORMAT_STRING, -1, "OffsetTimeOriginal", "Time zone for DateTimeOriginal", NULL },
+	{ 0x9012, EXIF_FORMAT_STRING, -1, "OffsetTimeDigitized", "Time zone for CreateDate", NULL },
 	{ 0x9101, EXIF_FORMAT_UNDEFINED, -1,		"ComponentsConfiguration","Pixel format", NULL },
 	{ 0x9102, EXIF_FORMAT_RATIONAL_UNSIGNED,1,	"CompressedBitsPerPixel","Compression ratio", NULL },
 	{ 0x9201, EXIF_FORMAT_RATIONAL, 1,		"ShutterSpeedValue",	N_("Shutter speed"), NULL },
@@ -314,16 +363,17 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0x9207, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"MeteringMode",		N_("Metering mode"), ExifMeteringModeList },
 	{ 0x9208, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"LightSource",		N_("Light source"), ExifLightSourceList },
 	{ 0x9209, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"Flash",		N_("Flash"), ExifFlashList },
-	{ 0x920a, EXIF_FORMAT_RATIONAL_UNSIGNED, 1, 	"FocalLength",		N_("Focal length"), NULL },
+	{ 0x920a, EXIF_FORMAT_RATIONAL_UNSIGNED, 1,	"FocalLength",		N_("Focal length"), NULL },
 	{ 0x9214, EXIF_FORMAT_SHORT_UNSIGNED, -1,	"SubjectArea",		"Subject area", NULL },
 	{ 0x927c, EXIF_FORMAT_UNDEFINED, -1,		"MakerNote",		"MakerNote", NULL },
-	{ 0x9286, EXIF_FORMAT_UNDEFINED, -1, 		"UserComment",		"UserComment", NULL },
+	{ 0x9286, EXIF_FORMAT_UNDEFINED, -1,		"UserComment",		"UserComment", NULL },
 	{ 0x9290, EXIF_FORMAT_STRING, -1,		"SubsecTime",		"Subsecond time", NULL },
 	{ 0x9291, EXIF_FORMAT_STRING, -1,		"SubsecTimeOriginal",	"Subsecond time original", NULL },
 	{ 0x9292, EXIF_FORMAT_STRING, -1,		"SubsecTimeDigitized",	"Subsecond time digitized", NULL },
 	{ 0xa000, EXIF_FORMAT_UNDEFINED, 4,		"FlashPixVersion",	"FlashPix version", NULL },
 	{ 0xa001, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"ColorSpace",		"Colorspace", ExifColorSpaceList },
-	/* ExifImageWidth, ExifImageHeight can also be unsigned short */ { 0xa002, EXIF_FORMAT_LONG_UNSIGNED, 1,		"ExifImageWidth",	N_("Width"), NULL },
+	/* ExifImageWidth, ExifImageHeight can also be unsigned short */
+	{ 0xa002, EXIF_FORMAT_LONG_UNSIGNED, 1,		"ExifImageWidth",	N_("Width"), NULL },
 	{ 0xa003, EXIF_FORMAT_LONG_UNSIGNED, 1,		"ExifImageHeight",	N_("Height"), NULL },
 	{ 0xa004, EXIF_FORMAT_STRING, -1,		"RelatedSoundFile",	"Audio data", NULL },
 	{ 0xa005, EXIF_FORMAT_LONG_UNSIGNED, 1,		"ExifInteroperabilityOffset", "ExifR98 extension", NULL },
@@ -352,6 +402,25 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0xa40b, EXIF_FORMAT_UNDEFINED, -1,		"DeviceSettingDescription","Device setting", NULL },
 	{ 0xa40c, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"SubjectDistanceRange",	"Subject range", ExifSubjectRangeList },
 	{ 0xa420, EXIF_FORMAT_STRING, -1,		"ImageUniqueID",	"Image serial number", NULL },
+	{ 0xa430, EXIF_FORMAT_STRING, -1,		"CameraOwnerName",	"Owner Name", NULL },
+	{ 0xa431, EXIF_FORMAT_STRING, -1,		"BodySerialNumber",	"Camera Serial Number", NULL },
+	{ 0xa432, EXIF_FORMAT_RATIONAL_UNSIGNED, 4,		"LensSpecification", "Lens Info/Specification / focal and Aperture ranges", NULL },
+	{ 0xa433, EXIF_FORMAT_STRING, -1,		"LensMake", "Lens Make", NULL },
+	{ 0xa434, EXIF_FORMAT_STRING, -1,		"LensModel",	"Camera Lens Model", NULL },
+	{ 0xa435, EXIF_FORMAT_STRING, -1,	 	"LensSerialNumber",	"Lens Serial Number", NULL },
+	{ 0xa436, EXIF_FORMAT_STRING, -1,	 	"ImageTitle",	"Image Title",	NULL },
+	{ 0xa437, EXIF_FORMAT_STRING, -1,		"Photographer",	"Photographer", NULL },
+	{ 0xa438, EXIF_FORMAT_STRING, -1,		"ImageEditor",	"Image Editor", NULL },
+	{ 0xa439, EXIF_FORMAT_STRING, -1,		"CameraFirmware",	"Camera Firmware", NULL },
+	{ 0xa43a, EXIF_FORMAT_STRING, -1,		"RAWDevelopingSoftware",	"Raw Developing Software", NULL },
+	{ 0xa43b, EXIF_FORMAT_STRING, -1,		"ImageEditingSoftware",	"Image Editing Software", NULL },
+	{ 0xa43c, EXIF_FORMAT_STRING, -1,		"MetadataEditingSoftware",	"Metadata Editing Software", NULL },
+	{ 0xa460, EXIF_FORMAT_SHORT_UNSIGNED,	1,	"CompositeImage",	"Composite Image", ExifCompositeImageList },
+	{ 0xa461, EXIF_FORMAT_SHORT_UNSIGNED,	2,	"CompositeImageCount",	"Composite Image count (2 values: 1. Number of source images, 2. Number of images used. Called SourceImageNumberOfCompositeImage by the EXIF spec.)"	, NULL },
+	//{ 0xa462 	CompositeImageExposureTimes 	undef 	ExifIFD 	(11 or more values: 1. Total exposure time period, 2. Total exposure of all source images, 3. Total exposure of all used images, 4. Max exposure time of source images, 5. Max exposure time of used images, 6. Min exposure time of source images, 7. Min exposure of used images, 8. Number of sequences, 9. Number of source images in sequence. 10-N. Exposure times of each source image. Called SourceExposureTimesOfCompositeImage by the EXIF spec.)
+	{ 0xa480, EXIF_FORMAT_STRING,	-1, "GDALMetadata",	"GDAL Metadata",	NULL },
+	{ 0xa481, EXIF_FORMAT_STRING,	-1, "GDALNoData",	"GDAL No Data",	NULL },
+	{ 0xa500, EXIF_FORMAT_RATIONAL_UNSIGNED,	1, "Gamma",	"Gamma",	NULL },
 	/* place known, but undocumented or lesser used tags here */
 	{ 0x00fe, EXIF_FORMAT_LONG_UNSIGNED, 1,		"NewSubfileType",	NULL, NULL },
 	{ 0x00ff, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"SubfileType",		NULL, NULL },
@@ -368,7 +437,7 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0x828e, EXIF_FORMAT_BYTE_UNSIGNED, -1,	"CFAPattern",		NULL, NULL },
 	{ 0x828f, EXIF_FORMAT_RATIONAL_UNSIGNED, 1,	"BatteryLevel",		NULL, NULL },
 	{ 0x83bb, EXIF_FORMAT_LONG_UNSIGNED, -1,	"IPTC/NAA",		NULL, NULL },
-{ 0x8773, EXIF_FORMAT_UNDEFINED, -1,		"ColorProfile",		NULL, NULL },
+	{ 0x8773, EXIF_FORMAT_UNDEFINED, -1,		"ColorProfile",		NULL, NULL },
 	{ 0x8825, EXIF_FORMAT_LONG_UNSIGNED, 1,		"GPSInfo",		"SubIFD GPS offset", NULL },
 	{ 0x8829, EXIF_FORMAT_SHORT_UNSIGNED, 1,	"Interlace",		NULL, NULL },
 	{ 0x882a, EXIF_FORMAT_SHORT, 1,			"TimeZoneOffset",	NULL, NULL },
@@ -381,6 +450,8 @@ ExifMarker ExifKnownMarkersList[] = {
 	{ 0x9213, EXIF_FORMAT_STRING, -1,		"ImageHistory",		NULL, NULL },
 	{ 0x9215, EXIF_FORMAT_RATIONAL_UNSIGNED, 1,	"ExposureIndex",	NULL, NULL },
 	{ 0x9216, EXIF_FORMAT_BYTE_UNSIGNED, 4,		"TIFF/EPStandardID",	NULL, NULL },
+	{ 0xea1c, EXIF_FORMAT_UNDEFINED, -1, "Padding", NULL, NULL },
+	{ 0xea1d, EXIF_FORMAT_LONG, -1, "OffsetSchema", "Microsoft's ...", NULL },
 	EXIF_MARKER_LIST_END
 };
 
@@ -436,6 +507,9 @@ ExifItem *exif_item_new(ExifFormatType format, guint tag,
 	item->elements = elements;
 	item->data = NULL;
 	item->data_len = 0;
+
+	if (debug)
+		printf("exif_item_new\n");
 
 	switch (format) {
 		case EXIF_FORMAT_UNKNOWN:
@@ -652,7 +726,7 @@ void exif_item_copy_data(ExifItem *item, void *src, guint len,
 	dest = item->data;
 
 	if (!dest ||
-	    ExifFormatList[src_format].size * ne > len) {
+			ExifFormatList[src_format].size * ne > len) {
 		printf("exif tag %s data size mismatch\n", exif_item_get_tag_name(item));
 		return;
 	}
@@ -680,7 +754,7 @@ void exif_item_copy_data(ExifItem *item, void *src, guint len,
 		case EXIF_FORMAT_LONG_UNSIGNED:
 		case EXIF_FORMAT_LONG:
 			if (src_format == EXIF_FORMAT_SHORT_UNSIGNED ||
-			    src_format == EXIF_FORMAT_SHORT) {
+					src_format == EXIF_FORMAT_SHORT) {
 				/* a short fits into a long, so allow it */
 				gint ss;
 
@@ -758,11 +832,11 @@ static gint exif_parse_IFD_entry(ExifData *exif, unsigned char *tiff, guint offs
 		 * ok, so this test is to allow the case of swapped signed/unsigned mismatch to leak through?
 		 */
 		if (!(marker->format == EXIF_FORMAT_RATIONAL_UNSIGNED && format == EXIF_FORMAT_RATIONAL) &&
-		    !(marker->format == EXIF_FORMAT_RATIONAL && format == EXIF_FORMAT_RATIONAL_UNSIGNED) &&
-			/* short fits into a long so allow this mismatch
-			 * as well (some tags allowed to be unsigned short _or_ unsigned long)
-			 */
-		    !(marker->format == EXIF_FORMAT_LONG_UNSIGNED && format == EXIF_FORMAT_SHORT_UNSIGNED) ) {
+				!(marker->format == EXIF_FORMAT_RATIONAL && format == EXIF_FORMAT_RATIONAL_UNSIGNED) &&
+				/* short fits into a long so allow this mismatch
+				* as well (some tags allowed to be unsigned short _or_ unsigned long)
+				*/
+				!(marker->format == EXIF_FORMAT_LONG_UNSIGNED && format == EXIF_FORMAT_SHORT_UNSIGNED) ) {
 			if (format < EXIF_FORMAT_COUNT) {
 				printf("warning: exif tag %s format mismatch, found %s exif spec requests %s\n",
 					marker->key, ExifFormatList[format].short_name,
@@ -897,15 +971,15 @@ gint exif_tiff_parse(ExifData *exif, unsigned char *tiff, guint size, ExifMarker
 #define JPEG_MARKER_APP2	0xE2
 
 /* jpeg container format:
-     all data markers start with 0XFF
-     2 byte long file start and end markers: 0xFFD8(SOI) and 0XFFD9(EOI)
-     4 byte long data segment markers in format: 0xFFTTSSSSNNN...
-       FF:   1 byte standard marker identifier
-       TT:   1 byte data type
-       SSSS: 2 bytes in Motorola byte alignment for length of the data.
-     	This value includes these 2 bytes in the count, making actual
-     	length of NN... == SSSS - 2.
-       NNN.: the data in this segment
+	all data markers start with 0XFF
+	2 byte long file start and end markers: 0xFFD8(SOI) and 0XFFD9(EOI)
+	4 byte long data segment markers in format: 0xFFTTSSSSNNN...
+  	FF:   1 byte standard marker identifier
+  	TT:   1 byte data type
+  	SSSS: 2 bytes in Motorola byte alignment for length of the data.
+		This value includes these 2 bytes in the count, making actual
+		length of NN... == SSSS - 2.
+  	NNN.: the data in this segment
  */
 
 static gint exif_jpeg_segment_find(unsigned char *data, guint size,
@@ -915,17 +989,18 @@ static gint exif_jpeg_segment_find(unsigned char *data, guint size,
 	guint offset = 0;
 	guint length = 0;
 
-	while (marker != app_marker &&
-	       marker != JPEG_MARKER_EOI) {
+	if(debug)
+		printf("exif_jpeg_segment_find\n");
+
+	while (marker != app_marker && marker != JPEG_MARKER_EOI) {
 		offset += length;
 		length = 2;
 
-		if (offset + 2 >= size ||
-		    data[offset] != JPEG_MARKER) return FALSE;
+		if (offset + 2 >= size || data[offset] != JPEG_MARKER)
+			return FALSE;
 
 		marker = data[offset + 1];
-		if (marker != JPEG_MARKER_SOI &&
-		    marker != JPEG_MARKER_EOI) {
+		if (marker != JPEG_MARKER_SOI && marker != JPEG_MARKER_EOI) {
 			if (offset + 4 >= size)
 				return FALSE;
 			length += exif_byte_get_int16(data + offset + 2, EXIF_BYTE_ORDER_MOTOROLA);
@@ -933,9 +1008,9 @@ static gint exif_jpeg_segment_find(unsigned char *data, guint size,
 	}
 
 	if (marker == app_marker &&
-	    offset + length < size &&
-	    length >= 4 + magic_len &&
-	    memcmp(data + offset + 4, magic, magic_len) == 0) {
+			offset + length < size &&
+			length >= 4 + magic_len &&
+			memcmp(data + offset + 4, magic, magic_len) == 0) {
 		*seg_offset = offset + 4;
 		*seg_length = length - 4;
 		return TRUE;
@@ -960,10 +1035,10 @@ static gint exif_jpeg_parse_color(ExifData *exif, unsigned char *data, guint siz
 	 */
 
 	while (exif_jpeg_segment_find(data + seg_offset + seg_length,
-				      size - seg_offset - seg_length,
-				      JPEG_MARKER_APP2,
-				      "ICC_PROFILE\x00", 12,
-				      &seg_offset, &seg_length)) {
+				 	size - seg_offset - seg_length,
+				 	JPEG_MARKER_APP2,
+				 	"ICC_PROFILE\x00", 12,
+				 	&seg_offset, &seg_length)) {
 		guchar chunk_num;
 		guchar chunk_tot;
 
@@ -980,12 +1055,14 @@ static gint exif_jpeg_parse_color(ExifData *exif, unsigned char *data, guint siz
 			guint i;
 
 			chunk_count = (guint)chunk_tot;
-			for (i = 0; i < chunk_count; i++) chunk_offset[i] = 0;
-			for (i = 0; i < chunk_count; i++) chunk_length[i] = 0;
+			for (i = 0; i < chunk_count; i++) {
+				chunk_offset[i] = 0;
+				chunk_length[i] = 0;
+			}
 		}
 
-		if (chunk_tot != chunk_count ||
-		    chunk_num > chunk_count) return FALSE;
+		if (chunk_tot != chunk_count || chunk_num > chunk_count)
+			return FALSE;
 
 		chunk_num--;
 		chunk_offset[chunk_num] = seg_offset + 14;
@@ -1011,7 +1088,7 @@ static gint exif_jpeg_parse_color(ExifData *exif, unsigned char *data, guint siz
 		}
 
 		item = exif_item_new(jpeg_color_marker.format, jpeg_color_marker.tag, 1,
-				     &jpeg_color_marker);
+					&jpeg_color_marker);
 		g_free(item->data);
 		item->data = cp_data;
 		item->elements = cp_length;
@@ -1024,15 +1101,18 @@ static gint exif_jpeg_parse_color(ExifData *exif, unsigned char *data, guint siz
 	return FALSE;
 }
 
-static gint exif_jpeg_parse(ExifData *exif,
-			    unsigned char *data, guint size,
-			    ExifMarker *list, gint parse_color) {
+static gint exif_jpeg_parse(ExifData *restrict exif, const guint size, uint8_t data[const restrict static size],
+				ExifMarker *restrict list, gint parse_color) {
 	guint seg_offset = 0;
 	guint seg_length = 0;
 	gint res = -1;
 
-	if (size < 4 ||
-	    memcmp(data, "\xFF\xD8", 2) != 0) {
+	if (debug)
+		printf("exif_jpeg_parse\n");
+
+	if (size < 4 || memcmp(data, "\xFF\xD8", 2) != 0) {
+		if (debug)
+			printf("Not jpeg identifier\n");
 		return -2;
 	}
 
@@ -1041,11 +1121,14 @@ static gint exif_jpeg_parse(ExifData *exif,
 				   &seg_offset, &seg_length)) {
 		res = exif_tiff_parse(exif, data + seg_offset + 6, seg_length - 6, list);
 	}
+	if (debug)
+		printf("exif_jpeg_segment_find: %i\n", res);
 
-	if (parse_color &&
-	    exif_jpeg_parse_color(exif, data, size)) {
+	if (parse_color && exif_jpeg_parse_color(exif, data, size)) {
 		res = 0;
 	}
+	if (debug)
+		printf("exif_jpeg_parse_color: %i\n", res);
 
 	return res;
 }
@@ -1060,6 +1143,9 @@ static gint exif_jpeg_parse(ExifData *exif,
 static gint map_file(const gchar *path, void **mapping, int *size) {
 	int fd;
 	struct stat fs;
+
+	if (debug)
+		printf("exif.c: map_file\n");
 
 	if ((fd = open(path, O_RDONLY)) == -1) {
 		perror(path);
@@ -1119,6 +1205,9 @@ ExifData *exif_read(const gchar *path, gint parse_color_profile) {
 	if (!path)
 		return NULL;
 
+	if(debug)
+		printf("exif_read: %s\n", path);
+
 	pathl = path_from_utf8(path);
 	if (map_file(pathl, &f, &size) == -1) {
 		g_free(pathl);
@@ -1129,10 +1218,16 @@ ExifData *exif_read(const gchar *path, gint parse_color_profile) {
 	exif = g_new0(ExifData, 1);
 	exif->items = NULL;
 
-	if ((res = exif_jpeg_parse(exif, (unsigned char *)f, size,
-				   ExifKnownMarkersList,
-				   parse_color_profile)) == -2) {
-		res = exif_tiff_parse(exif, (unsigned char *)f, size, ExifKnownMarkersList);
+	//res = exif_jpeg_parse(exif, size, (uint8_t[size])f, ExifKnownMarkersList, parse_color_profile);
+	res = exif_jpeg_parse(exif, size, f, ExifKnownMarkersList, parse_color_profile);
+
+	if (res == -2) {
+		//JPEG XL
+		res = exif_jxl_parse(exif, size, f, ExifKnownMarkersList, parse_color_profile);
+	}
+
+	if (res == -2) {
+		res = exif_tiff_parse(exif, f, size, ExifKnownMarkersList);
 	}
 
 	if (res != 0) {
@@ -1146,12 +1241,10 @@ ExifData *exif_read(const gchar *path, gint parse_color_profile) {
 			default:
 				break;
 			case FORMAT_RAW_EXIF_TIFF:
-				res = exif_tiff_parse(exif, (unsigned char*)f + offset, size - offset,
-						      ExifKnownMarkersList);
+				res = exif_tiff_parse(exif, (unsigned char*)f + offset, size - offset, ExifKnownMarkersList);
 				break;
 			case FORMAT_RAW_EXIF_JPEG:
-				res = exif_jpeg_parse(exif, (unsigned char*)f + offset, size - offset,
-						      ExifKnownMarkersList, FALSE);
+				res = exif_jpeg_parse(exif, size - offset, f + offset, ExifKnownMarkersList, FALSE);
 				break;
 			case FORMAT_RAW_EXIF_IFD_II:
 			case FORMAT_RAW_EXIF_IFD_MM:
@@ -1237,7 +1330,7 @@ gchar *exif_item_get_data_as_text(ExifItem *item) {
 				unsigned char val;
 
 				if (item->format == EXIF_FORMAT_BYTE_UNSIGNED ||
-				    item->format == EXIF_FORMAT_UNDEFINED) {
+					item->format == EXIF_FORMAT_UNDEFINED) {
 					val = ((unsigned char *)data)[0];
 				}
 				else {
@@ -1319,7 +1412,7 @@ gchar *exif_item_get_data_as_text(ExifItem *item) {
 	}
 
 	if (item->elements > EXIF_DATA_AS_TEXT_MAX_COUNT &&
-	    item->format != EXIF_FORMAT_STRING) {
+		item->format != EXIF_FORMAT_STRING) {
 		g_string_append(string, " ...");
 	}
 
@@ -1369,7 +1462,7 @@ ExifRational *exif_item_get_rational(ExifItem *item, gint *sign) {
 		return NULL;
 
 	if (item->format == EXIF_FORMAT_RATIONAL ||
-	    item->format == EXIF_FORMAT_RATIONAL_UNSIGNED) {
+		item->format == EXIF_FORMAT_RATIONAL_UNSIGNED) {
 		if (sign)
 			*sign = (item->format == EXIF_FORMAT_RATIONAL);
 		return &((ExifRational *)(item->data))[0];
@@ -1427,10 +1520,10 @@ static gchar *exif_get_formatted_by_key(ExifData *exif, const gchar *key, gint *
 		gchar *software = exif_get_data_as_text(exif, "Software");
 
 		text = g_strdup_printf("%s%s%s%s%s%s", (make) ? make : "", ((make) && (model)) ? " " : "",
-						       (model) ? model : "",
-						       (software) ? " (" : "",
-						       (software) ? software : "",
-						       (software) ? ")" : "");
+						 	(model) ? model : "",
+						 	(software) ? " (" : "",
+						 	(software) ? software : "",
+							(software) ? ")" : "");
 
 		g_free(make);
 		g_free(model);
@@ -1601,8 +1694,8 @@ static gchar *exif_get_formatted_by_key(ExifData *exif, const gchar *key, gint *
 
 		units = exif_get_data_as_text(exif, "ResolutionUnit");
 		text = g_strdup_printf("%0.f x %0.f (%s/%s)", rx->den ? (double)rx->num / rx->den : 1.0,
-							      ry->den ? (double)ry->num / ry->den : 1.0,
-							      _("dot"), (units) ? units : _("unknown"));
+								ry->den ? (double)ry->num / ry->den : 1.0,
+								_("dot"), (units) ? units : _("unknown"));
 
 		g_free(units);
 		return text;

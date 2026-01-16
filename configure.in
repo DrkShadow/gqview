@@ -1,13 +1,22 @@
-AC_INIT(src/main.c)
-AC_CONFIG_HEADER(config.h)
+AC_INIT
+AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE(gqview, 2.1.5)
 
 AM_MAINTAINER_MODE
 
-AC_ISC_POSIX
+AC_SEARCH_LIBS([strerror],[cposix])
 AC_PROG_CC
-AC_STDC_HEADERS
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_ARG_PROGRAM
 
 dnl reasonable guesses for where stuff is installed
@@ -54,6 +63,8 @@ AM_CONDITIONAL(HAVE_LCMS, test "$have_lcms" = "yes")
 
 AC_CHECK_LIB(m, pow, LIBM="-lm")
 AC_SUBST(LIBM)
+AC_CHECK_LIB(jxl, JxlDecoderCreate, LIBJXL="-ljxl")
+AC_SUBST(LIBJXL)
 
 ALL_LINGUAS="ar be bg ca cs da de eo es et eu fi fr hu id it ja ko nl no pl pt_BR ro ru sk sl sv th tr uk vi zh_CN.GB2312 zh_TW"
 GETTEXT_PACKAGE=$PACKAGE
@@ -65,7 +76,7 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/icons/Makefile
@@ -74,4 +85,5 @@ po/Makefile.in
 doc/Makefile
 gqview.spec
 ])
+AC_OUTPUT
 

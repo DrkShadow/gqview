@@ -199,6 +199,9 @@ void filter_add_defaults(void) {
 	filter_add_if_missing("ico", "Icon file", ".ico;.cur", FALSE);
 	filter_add_if_missing("ras", "Raster", ".ras", FALSE);
 	filter_add_if_missing("svg", "Scalable Vector Graphics", ".svg", FALSE);
+	filter_add_if_missing("jxl", "JPEG XL", ".jxl", FALSE);
+	filter_add_if_missing("webp", "Google Web Picture", ".webp", FALSE);
+	filter_add_if_missing("avif", "AVIF", ".avif", FALSE);
 
 	/* These are the raw camera formats with embedded jpeg/exif.
 	 * (see format_raw.c)

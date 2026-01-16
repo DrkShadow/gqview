@@ -59,6 +59,7 @@ am_gqview_OBJECTS = $(am__objects_1) bar_info.$(OBJEXT) \
 	collect-dlg.$(OBJEXT) collect-io.$(OBJEXT) \
 	collect-table.$(OBJEXT) color-man.$(OBJEXT) dnd.$(OBJEXT) \
 	dupe.$(OBJEXT) editors.$(OBJEXT) exif.$(OBJEXT) \
+	exif_jxl.$(OBJEXT) \
 	filelist.$(OBJEXT) format_canon.$(OBJEXT) \
 	format_fuji.$(OBJEXT) format_nikon.$(OBJEXT) \
 	format_olympus.$(OBJEXT) format_raw.$(OBJEXT) \
@@ -140,7 +141,7 @@ INTLLIBS = @INTLLIBS@
 LCMS_LIBS = @LCMS_LIBS@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
-LIBS = @LIBS@ -lm
+LIBS = @LIBS@ -lm -ljxl
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
@@ -271,6 +272,7 @@ gqview_SOURCES = \
 	editors.c	\
 	editors.h	\
 	exif.c		\
+	exif_jxl.c	\
 	exif.h		\
 	filelist.c	\
 	filelist.h	\
@@ -354,7 +356,7 @@ gqview_SOURCES = \
 	view_file_icon.c	\
 	view_file_icon.h
 
-gqview_LDADD = $(GTK_LIBS) $(INTLLIBS) $(LCMS_LIBS)
+gqview_LDADD = $(GTK_LIBS) $(INTLLIBS) $(LCMS_LIBS) $(LIBM) $(LIBJXL)
 EXTRA_DIST = \
 	$(extra_SLIK)
 
