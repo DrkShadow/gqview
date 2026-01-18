@@ -174,6 +174,8 @@ static void bar_exif_update(ExifBar *eb) {
 		return;
 	}
 
+	if (debug)
+		printf("bar_exif_update\n");
 	bar_exif_sensitive(eb, TRUE);
 
 	if (GTK_WIDGET_VISIBLE(eb->scrolled)) {
@@ -298,6 +300,8 @@ static void bar_exif_clear(ExifBar *eb) {
 void bar_exif_set(GtkWidget *bar, const gchar *path) {
 	ExifBar *eb;
 
+	if (debug)
+		printf("bar_exif_set\n");
 	eb = g_object_get_data(G_OBJECT(bar), "bar_exif_data");
 	if (!eb)
 		return;
@@ -502,6 +506,9 @@ GtkWidget *bar_exif_new(gint show_title, const gchar *path, gint advanced, GtkWi
 	gint i;
 
 	eb = g_new0(ExifBar, 1);
+
+	if (debug)
+		printf("bar_exif_new\n");
 
 	eb->labels = g_new0(GtkWidget *, bar_exif_key_count);
 
